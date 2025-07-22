@@ -2,21 +2,42 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  TextField,
-  Button,
-  Paper,
   Card,
   CardContent,
+  Alert,
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { NameIndexSearchForm } from '../components';
+import { SearchFormData, SearchResponse } from '../types/search';
+import { searchNameIndex } from '../services/searchApi';
 
-export const SearchPage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+interface SearchPageProps {
+  onSearchComplete?: (results: SearchResponse) => void;
+}
 
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    // TODO: Implement search functionality
-    console.log('Searching for:', searchQuery);
+export const SearchPage: React.FC<SearchPageProps> = ({ onSearchComplete }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = async (formData: SearchFormData) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const results = await searchNameIndex(formData);
+      
+      // Call the callback to update results in parent component
+      if (onSearchComplete) {
+        onSearchComplete(results);
+      }
+      
+      console.log('Search completed:', results);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during search';
+      setError(errorMessage);
+      console.error('Search error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,64 +54,32 @@ export const SearchPage: React.FC = () => {
             mb: 2,
           }}
         >
-          Search National Archives Records
+          Name Index Search
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
-          sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}
+          sx={{ maxWidth: 700, mx: 'auto', mb: 4 }}
         >
-          Discover millions of records from the National Archives and Records Administration.
-          Search historical documents, photographs, maps, and more.
+          Search the Master Index and Flexoline name indices to discover historical records 
+          and military personnel information from the National Archives.
         </Typography>
       </Box>
 
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3, maxWidth: 900, mx: 'auto' }}>
+          {error}
+        </Alert>
+      )}
+
       {/* Search Form */}
-      <Paper
-        elevation={2}
-        sx={{ p: 3, mb: 4, maxWidth: 800, mx: 'auto' }}
-      >
-        <Box
-          component="form"
-          onSubmit={handleSearch}
-          sx={{
-            display: 'flex',
-            gap: 2,
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { sm: 'flex-end' },
-          }}
-        >
-          <TextField
-            fullWidth
-            label="Search records..."
-            variant="outlined"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Enter keywords, names, places, or topics"
-            sx={{ flexGrow: 1 }}
-            inputProps={{
-              'aria-label': 'Search records',
-            }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            startIcon={<SearchIcon />}
-            sx={{
-              minWidth: 120,
-              height: 56,
-            }}
-          >
-            Search
-          </Button>
-        </Box>
-      </Paper>
+      <NameIndexSearchForm onSearch={handleSearch} loading={loading} />
 
       {/* Quick Start Guide */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h2" gutterBottom>
-          How to Search
+      <Box sx={{ mb: 4, mt: 6 }}>
+        <Typography variant="h3" component="h2" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+          Search Guide
         </Typography>
         
         <Box 
@@ -98,15 +87,18 @@ export const SearchPage: React.FC = () => {
             display: 'flex',
             gap: 3,
             flexDirection: { xs: 'column', md: 'row' },
+            maxWidth: 1200,
+            mx: 'auto',
           }}
         >
           <Card sx={{ flex: 1 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Basic Search
+                Master Index
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Enter keywords related to people, places, events, or topics you're researching.
+                Search general historical records, documents, and archival materials. 
+                Includes names, locations, subjects, and various record types from the National Archives.
               </Typography>
             </CardContent>
           </Card>
@@ -114,10 +106,11 @@ export const SearchPage: React.FC = () => {
           <Card sx={{ flex: 1 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Advanced Filters
+                Flexoline Index
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Use filters to narrow results by date range, record type, or location.
+                Specialized search for military personnel records. Find information about 
+                service members including names, birth details, military units, and service history.
               </Typography>
             </CardContent>
           </Card>
@@ -125,10 +118,11 @@ export const SearchPage: React.FC = () => {
           <Card sx={{ flex: 1 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Browse Collections
+                Search Tips
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Explore curated collections of records organized by theme or subject.
+                Use wildcards (*) for partial matches, "OR" for multiple terms, and select 
+                specific fields to narrow your search. Results are displayed in an interactive grid.
               </Typography>
             </CardContent>
           </Card>
